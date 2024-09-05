@@ -1,24 +1,17 @@
 const express = require('express');
 const router = express.Router();
-const { processTransaction } = require('../controllers/transaccionController');
+const transferController = require('../controllers/transaccionController');
+const authMiddleware = require('../middlewares/authMiddleware');
 
-router.post('/', async (req, res) => {
-  try {
-    const { senderId, receiverId, amount, description } = req.body;
-    const result = await processTransaction(senderId, receiverId, amount, description);
-    res.status(200).json(result);
-  } catch (error) {
-    res.status(500).json({ message: 'Error procesando la transacción', error: error.message });
-  }
-});
+// Ruta para transferir fondos
+ router.post('/transfer', transferController.transferirFondos);  //authMiddleware, transferController.transferirFondos
 
-router.get('/history', async (req, res) => {
-  try {
-    const { rows } = await pool.query('SELECT * FROM transactions ORDER BY transaction_date DESC'); // Ajusta esta consulta a tu esquema
-    res.json(rows);
-  } catch (error) {
-    res.status(500).json({ message: 'Error al recuperar el historial de transacciones', error: error.message });
-  }
-});
+// Ruta para obtener el historial de transacciones
+router.get('/historial', transferController.obtenerHistorialTransacciones) //authMiddleware, transferController.obtenerHistorialTransacciones);
 
+// Ruta para obtener la posición consolidada
+router.get('/posicion-consolidada',transferController.obtenerPosicionConsolidada) //authMiddleware, transferController.obtenerPosicionConsolidada);
+
+//ruta para hacer un deposito
+router.post('/deposito', transferController.crearTransaccion);
 module.exports = router;

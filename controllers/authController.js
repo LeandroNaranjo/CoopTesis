@@ -148,13 +148,14 @@ const register = async (req, res) => {
 };
 
 // Inicio de sesión
+// Inicio de sesión
 const login = async (req, res) => {
     const { email, password } = req.body;
 
     try {
-        // Verificar si el correo existe en la tabla esq_datos_personales.tbl_persona
+        // Verificar si el correo existe en la tabla esq_datos_personales.tbl_persona (PostgreSQL)
         const userQuery = `
-            SELECT p.idpersona, c.clave 
+            SELECT p.idpersona, p.identificacion, c.clave 
             FROM esq_datos_personales.tbl_persona p
             INNER JOIN esq_roles.tbl_clave c ON p.idpersona = c.idpersona
             WHERE p.correo = $1
@@ -165,17 +166,43 @@ const login = async (req, res) => {
             return res.status(401).json({ success: false, message: 'Credenciales incorrectas.' });
         }
 
-        const { idpersona, clave } = userResult.rows[0];
+        const { idpersona, identificacion, clave } = userResult.rows[0];
 
-        // Comparar la contraseña proporcionada con la contraseña almacenada en la base de datos
+        // Comparar la contraseña proporcionada con la contraseña almacenada en la base de datos (PostgreSQL)
         const passwordMatch = await bcrypt.compare(password, clave);
 
         if (!passwordMatch) {
             return res.status(401).json({ success: false, message: 'Credenciales incorrectas.' });
         }
 
-        // Si la contraseña coincide, el usuario ha iniciado sesión con éxito
-        // Ahora generamos un token JWT
+        // Verificar si la cédula existe en MySQL
+        const mysqlResults = await new Promise((resolve, reject) => {
+            mysqlConnection.query(
+                'SELECT id_persona FROM persona WHERE numero_identificacion = ?',
+                [identificacion],
+                (err, results) => {
+                    if (err) {
+                        console.error('Error en la consulta MySQL:', err);
+                        return reject(err);
+                    }
+                    resolve(results);
+                }
+            );
+        });
+
+        if (!mysqlResults || mysqlResults.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'Cédula no encontrada en MySQL.',
+            });
+        }
+
+        const idPersonaMySQL = mysqlResults[0].id_persona;
+
+        // Agregar el console.log para verificar coincidencia
+        console.log(`Número de cédula en pg coincide con la cédula en mysql, la id es ${idPersonaMySQL}`);
+
+        // Si las cédulas coinciden y la contraseña es correcta, generar el token JWT
         const token = jwt.sign(
             { idpersona: idpersona }, // Payload del token
             process.env.JWT_SECRET,   // Clave secreta para firmar el token (debe estar en tus variables de entorno)

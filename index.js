@@ -1,8 +1,13 @@
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
-const authRoutes = require('./routes/auth');
 const dotenv = require('dotenv');
+
+
+const authRoutes = require('./routes/auth');
+const transaccionRoutes = require('./routes/transaccion');
+
+
 
 dotenv.config();
 
@@ -21,6 +26,7 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 app.use('/api/auth', authRoutes);
+app.use('/api/transaccion', transaccionRoutes);
 
 app.listen(PORT, () => {
   console.log(`Servidor corriendo en el puerto ${PORT}`);
